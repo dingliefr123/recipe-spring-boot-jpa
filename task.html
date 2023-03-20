@@ -1,37 +1,45 @@
 <h5 id="description">Description</h5>
-<p>Our service can store only one recipe at a time which is not very convenient. In this stage, improve the service to store a lot of recipes and access recipes by a unique <code class="language-json">id</code>. Some changes in the recipe structure are also required.</p>
-<p>The new structure of a recipe includes the same 4 fields, but the type of two of them is different. <code class="language-json">ingredients</code> and <code class="language-json">directions</code> should now be arrays. Here's an example of the new structure:</p>
+<p>In the previous stage, we have improved our service, so it can handle a lot of recipes. But when we close our program, it deletes all recipes. In this stage, you'll implement one of the main features of the service – connect the service to a database and store the recipes there. No more lost recipes!</p>
+<p>You will also need a new endpoint that will allow deleting a recipe by the recipe <code class="language-java">id</code>. Make sure that the service accepts only valid recipes – recipes without directions or ingredients are frustrating. We won't change the recipe structure in this stage.</p>
+<h5 id="objectives">Objectives</h5>
+<p>First of all, include all necessary dependencies and configurations in the <code class="language-java">build.gradle</code> and <code class="language-java">application.properties</code> files.</p>
+<p>For testing reasons, the <code class="language-java">application.properties</code> file should contain the following line with the database name:</p>
+<pre><code class="language-java">spring.datasource.url=jdbc:h2:file:../recipes_db</code></pre>
+<p>The service should support the same endpoints as in the previous stage:</p>
+<ul>
+<li><code class="language-java">POST /api/recipe/new</code> receives a recipe as a JSON object and returns a JSON object with one <code class="language-java">id</code> field;</li>
+<li><code class="language-java">GET /api/recipe/{id}</code> returns a recipe with a specified <code class="language-java">id</code> as a JSON object.</li>
+</ul>
+<p>To complete the stage you need to add the following functionality:</p>
+<ul>
+<li>Store all recipes permanently in a database: after a server restart, all added recipes should be available to a user;</li>
+<li>Implement a new <code class="language-java">DELETE /api/recipe/{id}</code> endpoint. It deletes a recipe with a specified <code class="language-java">{id}</code>. The server should respond with the <code class="language-json">204 (No Content)</code> status code. If a recipe with a specified id does not exist, the server should return <code class="language-json">404 (Not found)</code>;</li>
+<li>The service should accept only valid recipes – all fields are obligatory, <code class="language-java">name</code> and <code class="language-java">description</code> shouldn't be blank, and JSON arrays should contain at least one item. If a recipe doesn't meet these requirements, the service should respond with the <code class="language-json">400 (Bad Request)</code> status code.</li>
+</ul>
+<h5 id="examples">Examples</h5>
+<p><strong>Example 1: </strong><code class="language-java">POST /api/recipe/new</code> request</p>
 <pre><code class="language-json">{
    "name": "Warming Ginger Tea",
    "description": "Ginger tea is a warming drink for cool weather, ...",
    "ingredients": ["1 inch ginger root, minced", "1/2 lemon, juiced", "1/2 teaspoon manuka honey"],
    "directions": ["Place all ingredients in a mug and fill with warm water (not too hot so you keep the beneficial honey compounds in tact)", "Steep for 5-10 minutes", "Drink and enjoy"]
 }</code></pre>
-<h5 id="objectives">Objectives</h5>
-<p>Rearrange the existing endpoints; the service should support the following:</p>
-<ul>
-<li><code class="language-json">POST /api/recipe/new</code> receives a recipe as a JSON object and returns a JSON object with one <code class="language-json">id</code> field. This is a uniquely generated number by which we can identify and retrieve a recipe later. The status code should be <code class="language-json">200 (Ok)</code>.</li>
-<li><code class="language-json">GET /api/recipe/{id}</code> returns a recipe with a specified <code class="language-json">id</code> as a JSON object (where <code class="language-json">{id}</code> is the <code class="language-json">id</code> of a recipe). The server should respond with the <code class="language-json">200 (Ok)</code> status code. If a recipe with a specified <code class="language-json">id</code> does not exist, the server should respond with <code class="language-json">404 (Not found)</code>.</li>
-</ul>
-<h5 id="examples">Examples</h5>
-<p><strong>Example 1</strong>: <code class="language-json">POST /api/recipe/new</code> request with the following body:</p>
-<pre><code class="language-json">{
-   "name": "Fresh Mint Tea",
-   "description": "Light, aromatic and refreshing beverage, ...",
-   "ingredients": ["boiled water", "honey", "fresh mint leaves"],
-   "directions": ["Boil water", "Pour boiling hot water into a mug", "Add fresh mint leaves", "Mix and let the mint leaves seep for 3-5 minutes", "Add honey and mix again"]
-}</code></pre>
 <p>Response:</p>
 <pre><code class="language-json">{
    "id": 1
 }</code></pre>
-<p><strong>Example 2</strong>: <code class="language-json">GET /api/recipe/1</code> request</p>
-<p>Response:</p>
+<p><strong>Example 2: </strong>Response for the<strong> </strong><code class="language-java">GET /api/recipe/1</code> request</p>
 <pre><code class="language-json">{
-   "name": "Fresh Mint Tea",
-   "description": "Light, aromatic and refreshing beverage, ...",
-   "ingredients": ["boiled water", "honey", "fresh mint leaves"],
-   "directions": ["Boil water", "Pour boiling hot water into a mug", "Add fresh mint leaves", "Mix and let the mint leaves seep for 3-5 minutes", "Add honey and mix again"]
+   "name": "Warming Ginger Tea",
+   "description": "Ginger tea is a warming drink for cool weather, ...",
+   "ingredients": ["1 inch ginger root, minced", "1/2 lemon, juiced", "1/2 teaspoon manuka honey"],
+   "directions": ["Place all ingredients in a mug and fill with warm water (not too hot so you keep the beneficial honey compounds in tact)", "Steep for 5-10 minutes", "Drink and enjoy"]
 }</code></pre>
-<p><strong>Example 3</strong>: <code class="language-json">GET /api/recipe/999</code> request</p>
+<p><strong>Example 3: </strong></p>
+<p><code class="language-java">DELETE /api/recipe/1</code> request</p>
+<p>Status code: <code class="language-json">204 (No Content)</code></p>
+<p><code class="language-java">DELETE /api/recipe/1</code> request</p>
+<p>Status code: <code class="language-json">404 (Not found)</code></p>
+<p><strong>Example 4:</strong></p>
+<p><code class="language-java">GET /api/recipe/1</code> request</p>
 <p>Status code: <code class="language-json">404 (Not found)</code></p>

@@ -1,28 +1,55 @@
 package recipes.controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import recipes.DTO.DeleteSuccessResult;
 import recipes.DTO.PostRecipeDTO;
 import recipes.DTO.RecipeDTO;
 import recipes.Exceptions.RecipeNotFoundException;
+import recipes.Exceptions.ValidationException;
+import recipes.Service.RecipeService;
+import recipes.Validator.RecipeValidator;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.validation.Valid;
+import java.util.Objects;
+import java.util.Optional;
 
 @RestController
+@RequestMapping("/api/recipe")
 public class RecipeController {
-  static List<RecipeDTO> recipes = new ArrayList<>();
+  @Autowired
+  RecipeService recipeService;
 
-  @GetMapping("/api/recipe/{id}")
-  public RecipeDTO getRecipe(@PathVariable int id) {
-    int _id = id - 1;
-    if (_id < 0 || _id >= recipes.size() )
+  @GetMapping("/{id}")
+  public RecipeDTO getRecipe(@PathVariable Long id) {
+    if (Objects.isNull(id))
       throw new RecipeNotFoundException("");
-    return recipes.get(_id);
+    Optional<RecipeDTO> optional =
+            recipeService.queryRecipe(id);
+    if (optional.isEmpty())
+      throw new RecipeNotFoundException("");
+    return optional.get();
   }
 
-  @PostMapping("/api/recipe/new")
-  public PostRecipeDTO postRecipe(@RequestBody RecipeDTO _recipe) {
-    recipes.add(_recipe);
-    return new PostRecipeDTO(recipes.size());
+  @DeleteMapping("/{id}")
+  public ResponseEntity<String> deleteRecipe(@PathVariable Long id) {
+    recipeService.deleteRecipe(id);
+    return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+  }
+
+  @PostMapping("/new")
+  public PostRecipeDTO postRecipe(
+          @Valid @RequestBody RecipeValidator recipeValidatorRes
+  ) {
+    RecipeDTO recipeDTO = new RecipeDTO(
+            recipeValidatorRes.getName(),
+            recipeValidatorRes.getDescription(),
+            recipeValidatorRes.getIngredients(),
+            recipeValidatorRes.getDirections()
+    );
+    var id = recipeService.saveRecipe(recipeDTO);
+    return new PostRecipeDTO(id);
   }
 }
