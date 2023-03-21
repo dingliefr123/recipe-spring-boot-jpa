@@ -2,8 +2,11 @@ package recipes.Entities;
 
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import recipes.DTO.RecipeDTO;
+import recipes.util.Convertor;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -12,6 +15,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "recipe")
+@Builder
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -48,4 +52,25 @@ public class RecipeEntity {
           foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT)
   )
   private List<DirectionEntity> directions = new ArrayList<>();
+
+  @Column(name = "user_id")
+  private Long authorId;
+
+
+  public static RecipeEntity fromRecipeDTO(RecipeDTO recipeDTO, Long authorId) throws Exception {
+    List<IngredientEntity> ingredientEntities =
+            Convertor.toObjectList(recipeDTO.getIngredients(), IngredientEntity.class);
+    List<DirectionEntity> directionEntities =
+            Convertor.toObjectList(recipeDTO.getDirections(), DirectionEntity.class);
+    return RecipeEntity.builder()
+            .description(recipeDTO.getDescription())
+            .name(recipeDTO.getName())
+            .category(recipeDTO.getCategory())
+            .date(recipeDTO.getDate())
+            .ingredients(ingredientEntities)
+            .directions(directionEntities)
+            .authorId(authorId)
+            .build();
+  }
+
 }

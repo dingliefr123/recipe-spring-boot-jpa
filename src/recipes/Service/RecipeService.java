@@ -8,6 +8,7 @@ import recipes.Entities.DirectionEntity;
 import recipes.Entities.IngredientEntity;
 import recipes.Entities.RecipeEntity;
 import recipes.Exceptions.RecipeNotFoundException;
+import recipes.Exceptions.RequestForbiddenException;
 import recipes.Repository.DirectionRepository;
 import recipes.Repository.IngredientRepository;
 import recipes.Repository.RecipeRepository;
@@ -39,22 +40,10 @@ public class RecipeService {
   }
 
   @Transactional
-  public Long saveRecipe(RecipeDTO recipeDTO) throws Exception {
-    final RecipeEntity recipeEntity = new RecipeEntity();
-    recipeEntity.setDescription(recipeDTO.getDescription());
-    recipeEntity.setName(recipeDTO.getName());
-    recipeEntity.setCategory(recipeDTO.getCategory());
-    recipeEntity.setDate(recipeDTO.getDate());
-    List<IngredientEntity> ingredientEntities =
-            Convertor.toObjectList(recipeDTO.getIngredients(), IngredientEntity.class);
-    recipeEntity.setIngredients(ingredientEntities);
-    List<DirectionEntity> directionEntities =
-            Convertor.toObjectList(recipeDTO.getDirections(), DirectionEntity.class);
-    recipeEntity.setDirections(directionEntities);
-
-    RecipeEntity created =
-            recipeRepository.save(recipeEntity);
-    return created.getId();
+  public Long saveRecipe(RecipeDTO recipeDTO, Long authorId) throws Exception {
+    RecipeEntity recipeEntity =
+            RecipeEntity.fromRecipeDTO(recipeDTO, authorId);
+    return recipeRepository.save(recipeEntity).getId();
   }
 
   public Optional<RecipeDTO> queryRecipe(Long id) {
@@ -70,8 +59,7 @@ public class RecipeService {
 
   public List<RecipeDTO> searchRecipes(
           RecipeController.NameOrCategory condition,
-          String param
-  ) {
+          String param) {
     List<RecipeEntity> l;
     Sort sort = Sort.by("date").descending();
     if (condition == RecipeController.NameOrCategory.NAME) {
@@ -87,17 +75,18 @@ public class RecipeService {
             .collect(Collectors.toList());
   }
 
-  public void deleteRecipe(Long id) {
+  public void deleteRecipe(Long id, Long userId) {
     if (Objects.isNull(id))
       throw new RecipeNotFoundException("");
-    boolean exists = recipeRepository.existsById(id);
-    if (!exists)
+    Optional<RecipeEntity> optional = recipeRepository.findById(id);
+    if (optional.isEmpty())
       throw new RecipeNotFoundException("");
+    checkCurrentUserIsAuthor(optional.get(), userId);
     recipeRepository.deleteById(id);
   }
 
   @Transactional
-  public void putRecipe(Long id, RecipeValidator validated) throws Exception {
+  public void putRecipe(Long id, RecipeValidator validated, Long userId) throws Exception {
     if (Objects.isNull(id))
       throw new RecipeNotFoundException("");
     Optional<RecipeEntity> optional =
@@ -107,22 +96,34 @@ public class RecipeService {
 
     RecipeEntity recipeEntity = optional.get();
 
+    checkCurrentUserIsAuthor(recipeEntity, userId);
+
     // Remove the mapped objects
     clearMapped(recipeEntity);
 
-    recipeEntity.setName(validated.getName());
-    recipeEntity.setDescription(validated.getDescription());
-    recipeEntity.setCategory(validated.getCategory());
-    recipeEntity.setDate(LocalDateTime.now());
+
     List<IngredientEntity> ingredientEntities =
             Convertor.toObjectList(validated.getIngredients(), IngredientEntity.class);
     List<DirectionEntity> directionEntities =
             Convertor.toObjectList(validated.getDirections(), DirectionEntity.class);
-
+    recipeEntity.setName(validated.getName());
+    recipeEntity.setDescription(validated.getDescription());
+    recipeEntity.setCategory(validated.getCategory());
+    recipeEntity.setDate(LocalDateTime.now());
     recipeEntity.setDirections(directionEntities);
     recipeEntity.setIngredients(ingredientEntities);
 
     recipeRepository.save(recipeEntity);
+  }
+
+
+  private void checkCurrentUserIsAuthor(RecipeEntity recipe, Long userId) {
+    try {
+      if (!userId.equals(recipe.getAuthorId()))
+        throw new RequestForbiddenException("");
+    } catch (Exception e) {
+      throw new RequestForbiddenException("");
+    }
   }
 
   private void clearMapped(RecipeEntity recipeEntity) {

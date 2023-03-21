@@ -3,12 +3,16 @@ package recipes.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import recipes.DTO.PostRecipeDTO;
 import recipes.DTO.RecipeDTO;
+import recipes.Exceptions.NotAuthenticatedException;
 import recipes.Exceptions.RecipeNotFoundException;
 import recipes.Exceptions.ValidationException;
+import recipes.Seaurity.CustomUserDetails;
 import recipes.Service.RecipeService;
 import recipes.Validator.RecipeValidator;
 
@@ -42,13 +46,15 @@ public class RecipeController {
   @DeleteMapping("/{id}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void deleteRecipe(@PathVariable Long id) {
-    recipeService.deleteRecipe(id);
+    Long userId = checkAuthenticatedAndGetId();
+    recipeService.deleteRecipe(id, userId);
   }
 
   @PostMapping("/new")
   public PostRecipeDTO postRecipe(
           @Valid @RequestBody RecipeValidator recipeValidatorRes
   ) throws Exception {
+    Long userId = checkAuthenticatedAndGetId();
     LocalDateTime date = LocalDateTime.now();
     RecipeDTO recipeDTO = new RecipeDTO(
             recipeValidatorRes.getName(),
@@ -58,7 +64,7 @@ public class RecipeController {
             recipeValidatorRes.getIngredients(),
             recipeValidatorRes.getDirections()
     );
-    var id = recipeService.saveRecipe(recipeDTO);
+    var id = recipeService.saveRecipe(recipeDTO, userId);
     return new PostRecipeDTO(id);
   }
 
@@ -68,7 +74,8 @@ public class RecipeController {
           @PathVariable Long id,
           @Valid @RequestBody RecipeValidator recipeValidatorRes
   ) throws Exception {
-    recipeService.putRecipe(id, recipeValidatorRes);
+    Long userId = checkAuthenticatedAndGetId();
+    recipeService.putRecipe(id, recipeValidatorRes, userId);
   }
 
   @GetMapping("/search")
@@ -104,7 +111,19 @@ public class RecipeController {
     return condition;
   }
 
-
+  static Long checkAuthenticatedAndGetId() {
+    try {
+      Authentication auth =
+              SecurityContextHolder.getContext().getAuthentication();
+      CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
+      Long userId = userDetails.getUserId();
+      if (Objects.isNull(userId))
+        throw new Exception();
+      return userId;
+    } catch(Exception e) {
+      throw new NotAuthenticatedException("");
+    }
+  }
 
   public enum NameOrCategory {
     NAME,
